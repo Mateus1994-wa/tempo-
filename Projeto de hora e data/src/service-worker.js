@@ -1,6 +1,6 @@
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open("app-saudacao-cache").then(cache => {
+    caches.open("app Seja Bem vindo-cache").then(cache => {
       return cache.addAll([
         "index.html",
         "manifest.json",
@@ -20,4 +20,5 @@ self.addEventListener("fetch", event => {
     caches.match(event.request).then(response => response || fetch(event.request))
   );
 });
+
 
