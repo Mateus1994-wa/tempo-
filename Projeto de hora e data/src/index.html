@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relógio com data e hora</title>
+
+  <!--Manifest do PWA-->
+
+  <link rel="manifest" herf="manifest.json">
+  <meta name="theme-color" content="#000000">
+  <style>
+    :root{
+      --bg: #0f1724;
+      --card: rgba(255,255,255,0.06);
+      --text: #f8fafc;
+      --glass: rgba(255,255,255,0.04);
+      --radius: 16px;
+      --maxWidth: 720px;
+    }
+
+    /* Reset simples */
+    * { box-sizing: border-box; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+    html,body { height: 100%; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      background-color: var(--bg);
+      background-size: cover;
+      background-position: center;
+      color: var(--text);
+      transition: background-image 600ms ease-in-out, background-color 300ms linear;
+      padding: 24px;
+      line-height: 1.25;
+    }
+
+    /* Container central */
+    #container {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.3));
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      padding: clamp(14px, 2.5vw, 28px);
+      max-width: min(var(--maxWidth), 92%);
+      width: 100%;
+      border-radius: var(--radius);
+      box-shadow: 0 10px 30px rgba(2,6,23,0.6);
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.03);
+    }
+
+    /* Tipografia responsiva */
+    h2 {
+      margin: 0 0 8px 0;
+      font-size: clamp(1.25rem, 3.5vw, 2rem); /* título responsivo */
+      letter-spacing: 0.2px;
+      line-height: 1.05;
+    }
+    p {
+      margin: 6px 0;
+      font-size: clamp(0.9rem, 2vw, 1rem);
+      opacity: 0.95;
+    }
+
+    #hora {
+      font-weight: 600;
+      font-size: clamp(1.05rem, 3.6vw, 1.5rem);
+    }
+
+    #data { font-size: clamp(0.9rem, 2vw, 1rem); opacity: 0.9; }
+    #diaTipo { font-size: clamp(0.85rem, 1.8vw, 0.95rem); opacity: 0.85; }
+    #frase {
+      font-style: italic;
+      margin-top: 12px;
+      font-size: clamp(0.9rem, 2vw, 1.05rem);
+      opacity: 0.95;
+    }
+
+    /* Layout para telas pequenas */
+    @media (max-width: 480px) {
+      body { padding: 12px; }
+      #container { padding: 14px; }
+      #frase { margin-top: 10px; }
+    }
+
+    /* Mais espaço em telas maiores */
+    @media (min-width: 1100px) {
+      #container { padding: 36px; }
+    }
+
+    /* Acessibilidade: ocultar visualmente, mas manter para leitores de tela */
+    .sr-only {
+      position: absolute !important;
+      height: 1px; width: 1px;
+      overflow: hidden;
+      clip: rect(1px, 1px, 1px, 1px);
+      white-space: nowrap;
+    }
+
+    /* Para usuários que preferem menos movimento */
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="container" role="region" aria-label="Relógio e data">
+    <h2 id="titulo">—</h2>
+    <p id="hora" aria-live="polite">—</p>
+    <p id="data">—</p>
+    <p id="diaTipo">—</p>
+    <p id="frase" aria-live="polite">—</p>
+  </div>
+
+  <script>
+    // Frases gerais (fallback)
+    const frasesPadrao = [
+      "Que seu dia seja produtivo — comece agora!",
+      "Faça do dia uma grande oportunidade.",
+      "Mostre seu talento — você é capaz!"
+    ];
+
+    // Mapas de frases por turno (sem sobrescrever a constante global)
+    const frasesPorTurno = {
+      manha: [
+        "Que seu dia seja produtivo — comece agora!",
+        "Acorde com foco: pequenas ações, grandes resultados.",
+        "Sorria: hoje é uma nova chance."
+      ],
+      tarde: [
+        "Aproveite a tarde para avançar nos seus objetivos.",
+        "Pausa rápida e segue firme!",
+        "Renove a energia com um cafezinho."
+      ],
+      noite: [
+        "Hora de desacelerar e recarregar.",
+        "Reflita no que foi feito e planeje o amanhã.",
+        "Descanse bem — você merece."
+      ],
+      madrugada: [
+        "Silêncio da madrugada: hora de criar.",
+        "Cuide do seu descanso, ele te renova.",
+        "Se estiver acordado, cuide-se!"
+      ]
+    };
+
+    // Função para formatar data por extenso - usando Intl
+    function formatarDataCompleta(date) {
+      const opcoes = { weekday:'long', year: 'numeric', month: 'long', day: 'numeric' };
+      return date.toLocaleDateString("pt-BR", opcoes);
+    }
+
+    // Função principal que atualiza tudo (hora, data, fundo, mensagem)
+    function trocar() {
+      const agora = new Date();
+      const hora = agora.getHours();
+      const minutos = agora.getMinutes();
+      const segundos = agora.getSeconds();
+
+      // Decide turno e imagem de fundo (coloque seus caminhos)
+      let turno = "manha";
+      let mensagem = "";
+      let imagem = ""; // vazio remove imagem
+      if (hora >= 6 && hora < 12) {
+        turno = "manha";
+        mensagem = "Bom dia 🌞";
+        imagem = "url('Manha.jpg')";
+      } else if (hora >= 12 && hora < 18) {
+        turno = "tarde";
+        mensagem = "Boa tarde ☀️";
+        imagem = "url('Tarde.jpg')";
+      } else if (hora >= 18 && hora <= 23) {
+        turno = "noite";
+        mensagem = "Boa noite 🌇";
+        imagem = "url('Noite.jpg')"; // sem imagem para a noite por padrão
+      } else {
+        turno = "madrugada";
+        mensagem = "Boa madrugada 🌙";
+        imagem = "url('Madrugada.jpg')";
+      }
+
+      // Dia útil ou fim de semana
+      const diaSemana = agora.getDay(); // 0=dom,6=sab
+      const tipoDia = (diaSemana === 0 || diaSemana === 6)
+        ? "Hoje é fim de semana 🥳"
+        : "Hoje é dia útil — foco nas obrigações";
+
+      // Atualiza background de forma segura
+      if (imagem && imagem.trim() !== "") {
+        document.body.style.backgroundImage = imagem;
+      } else {
+        document.body.style.backgroundImage = "";
+      }
+
+      // Atualiza textos
+      document.getElementById("titulo").innerText = mensagem;
+      document.getElementById("hora").innerText =
+        "Agora são " + String(hora).padStart(2, "0") + ":" +
+        String(minutos).padStart(2, "0") + ":" +
+        String(segundos).padStart(2, "0");
+      document.getElementById("data").innerText = "📆 " + formatarDataCompleta(agora);
+      document.getElementById("diaTipo").innerText = tipoDia;
+
+      // Define as frases do turno atual (cópia para evitar efeitos colaterais)
+      const frases = (turno && frasesPorTurno[turno]) ? [...frasesPorTurno[turno]] : [...frasesPadrao];
+
+      // Retorna as frases para que trocarFrases use (guardamos numa propriedade do container)
+      // (opção simples para manter o escopo)
+      document.getElementById("container").dataset.frases = JSON.stringify(frases);
+    }
+
+    // Troca frase (lê as frases do data-attribute)
+    function trocarFrases() {
+      const cont = document.getElementById("container");
+      let frases = frasesPadrao;
+      try {
+        if (cont.dataset.frases) frases = JSON.parse(cont.dataset.frases);
+      } catch (e) { frases = frasesPadrao; }
+      if (frases && frases.length > 0) {
+        const idx = Math.floor(Math.random() * frases.length);
+        document.getElementById("frase").innerText = frases[idx];
+      } else {
+        document.getElementById("frase").innerText = frasesPadrao[Math.floor(Math.random()*frasesPadrao.length)];
+      }
+    }
+
+    // Inicializa: atualiza imediatamente e agenda intervalos
+    trocar();
+    trocarFrases();
+
+    // Atualiza relógio a cada segundo
+    const relogioInterval = setInterval(trocar, 1000);
+
+    // Troca frases a cada 5 segundos (pode ajustar)
+    const fraseInterval = setInterval(trocarFrases, 5000);
+
+    // Boa prática: limpar timers se a página for descarregada (evita leaks)
+    window.addEventListener('beforeunload', () => {
+      clearInterval(relogioInterval);
+      clearInterval(fraseInterval);
+    });
+  </script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js")
+      .then(()=> console.log("Service Worker registrado"))
+      .catch(err => console.log("Erro no SW:", err));
+    }
+  </script>
+</body>
+</html>
