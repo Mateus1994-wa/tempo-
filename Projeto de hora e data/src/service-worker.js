@@ -10,7 +10,6 @@ self.addEventListener("install", event => {
         "tarde.jpg",
         "noite.jpg",
         "madrugada.jpg",
-        "service-worker.js"
       ]);
     })
   );
@@ -21,3 +20,4 @@ self.addEventListener("fetch", event => {
     caches.match(event.request).then(response => response || fetch(event.request))
   );
 });
+
